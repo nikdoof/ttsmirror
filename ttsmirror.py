@@ -42,6 +42,8 @@ def iterate_save(obj, output_path, url_prefix):
                         with open(os.path.join(output_path, new_filename), 'wb') as outfile:
                             for chunk in res:
                                 outfile.write(chunk)
+                    if res.status_code == 404:
+                        raise Exception
                 obj[key] = urljoin(url_prefix, new_filename)
     return obj
 
@@ -50,7 +52,10 @@ def process_save(filename, output_path, url_prefix):
     new_filename = '%s_new.json' % filename.replace('.', '_')
     with open(filename, 'r') as fobj:
         save = json.load(fobj)
-    new_save = iterate_save(save, output_path, url_prefix)
+    try:
+        new_save = iterate_save(save, output_path, url_prefix)
+    except Exception as e:
+        logging.exception('Unable to process save: %s' % e)
     new_save['SaveName'] = '%s - Mirrored' % new_save['SaveName']
     with open(new_filename, 'w') as outfobj:
         outfobj.write(json.dumps(new_save))
