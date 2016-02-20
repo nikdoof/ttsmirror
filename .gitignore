@@ -60,4 +60,7 @@ target/
 .idea
 
 # Test files
-*.json
+.json
+
+# Virtualenv
+.env
