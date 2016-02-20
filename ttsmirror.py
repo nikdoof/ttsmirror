@@ -3,7 +3,6 @@ import logging
 import requests
 from urllib.parse import urlparse, urljoin
 import json
-import shutil
 
 __version__ = '0.1'
 __author__ = 'Andrew Williams'
@@ -11,7 +10,8 @@ __author__ = 'Andrew Williams'
 
 def iterate_save(obj, output_path, url_prefix):
     """
-    Iterate a save, download assets, and update the locations as needed
+    Iterate a save, download assets, and update the locations as needed.
+
     :param obj:
     :param output_path:
     :param url_prefix:
@@ -49,6 +49,7 @@ def iterate_save(obj, output_path, url_prefix):
 
 
 def process_save(filename, output_path, url_prefix):
+    """Parses TTS JSON save file and mirrors the required objects."""
     new_filename = '%s_new.json' % filename.replace('.', '_')
     with open(filename, 'r') as fobj:
         save = json.load(fobj)
