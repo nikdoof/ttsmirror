@@ -9,6 +9,28 @@ __version__ = '0.1'
 __author__ = 'Andrew Williams'
 
 
+class MirrorExceptionBase(Exception):
+    """Base exception for all mirroring issues"""
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __unicode__(self):
+        return self.msg
+
+    def __str__(self):
+        return self.__unicode__()
+
+
+class MissingFileExecption(MirrorExceptionBase):
+    """Raised when a source file is missing"""
+    pass
+
+
+class UnknownErrorException(MirrorExceptionBase):
+    """Raised when an unknown issue is encountered when mirroring"""
+    pass
+
+
 def iterate_save(obj, output_path, url_prefix, hash_filename=False):
     """
     Iterate a save, download assets, and update the locations as needed.
@@ -46,7 +68,9 @@ def iterate_save(obj, output_path, url_prefix, hash_filename=False):
                             for chunk in res:
                                 outfile.write(chunk)
                     if res.status_code == 404:
-                        raise Exception
+                        raise MissingFileExecption('%s returned a 404' % val)
+                    else:
+                        raise UnknownErrorException('URL %s returned code %d' % (val, res.status_code))
                 obj[key] = urljoin(url_prefix, new_filename)
     return obj
 
@@ -60,6 +84,7 @@ def process_save(filename, output_path, url_prefix, hash_filename):
         new_save = iterate_save(save, output_path, url_prefix, hash_filename)
     except Exception as e:
         logging.exception('Unable to process save: %s' % e)
+        return
     new_save['SaveName'] = '%s - Mirrored' % new_save['SaveName']
     with open(new_filename, 'w') as outfobj:
         outfobj.write(json.dumps(new_save, sort_keys=True, indent=4, separators=(',', ': ')))
