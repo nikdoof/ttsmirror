@@ -1,9 +1,9 @@
 import os
 import logging
-import requests
-from urllib.parse import urljoin
 import json
 import hashlib
+from urllib.parse import urljoin
+import requests
 
 __version__ = '0.1'
 __author__ = 'Andrew Williams'
@@ -52,6 +52,14 @@ def iterate_save(obj, output_path, url_prefix, hash_filename=False):
             obj[key] = res
         if isinstance(val, str):
             if key.lower()[-3:] == 'url' and val.strip() != '':
+
+                # If the Unique URL tag is added, remove it and ensure we set it later
+                if '{Unique}' in val:
+                    val = val.replace('{Unique}', '')
+                    unique = True
+                else:
+                    unique = False
+
                 # Generate new filename
                 if hash_filename:
                     new_filename = hashlib.sha1(val.encode('utf-8')).hexdigest()
@@ -61,7 +69,6 @@ def iterate_save(obj, output_path, url_prefix, hash_filename=False):
                         new_filename = new_filename.replace(rep, '_')
                 # Check if exists
                 if not os.path.exists(os.path.join(output_path, new_filename)):
-                    val = val.replace('{Unique}', '')
                     res = requests.get(val, stream=True)
                     if res.ok:
                         res.raw.decode_content = True
@@ -72,6 +79,8 @@ def iterate_save(obj, output_path, url_prefix, hash_filename=False):
                         raise MissingFileExecption('%s returned a 404' % val)
                     else:
                         raise UnknownErrorException('URL %s returned code %d' % (val, res.status_code))
+                if unique:
+                    new_filename = new_filename + '{Unique}'
                 obj[key] = urljoin(url_prefix, new_filename)
     return obj
 
@@ -83,8 +92,8 @@ def process_save(filename, output_path, url_prefix, hash_filename):
         save = json.load(fobj)
     try:
         new_save = iterate_save(save, output_path, url_prefix, hash_filename)
-    except Exception as e:
-        logging.exception('Unable to process save: %s' % e)
+    except Exception:
+        logging.exception('Unable to process save')
         return
     new_save['SaveName'] = '%s - Mirrored' % new_save['SaveName']
     with open(new_filename, 'w') as outfobj:
@@ -94,7 +103,6 @@ def process_save(filename, output_path, url_prefix, hash_filename):
 
 def main():
     import argparse
-    import os
     import sys
 
     parser = argparse.ArgumentParser('ttsmirror.py')
@@ -107,7 +115,7 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(os.path.abspath(args.save_file)):
-        logging.error('Unknown file %s' % args.save_file)
+        logging.error('Unknown file %s', args.save_file)
         sys.exit(1)
 
     process_save(args.save_file, args.output_path, args.url_prefix, args.hash_filename)
