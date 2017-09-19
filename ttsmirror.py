@@ -61,13 +61,14 @@ def iterate_save(obj, output_path, url_prefix, hash_filename=False):
                         new_filename = new_filename.replace(rep, '_')
                 # Check if exists
                 if not os.path.exists(os.path.join(output_path, new_filename)):
+                    val = val.replace('{Unique}', '')
                     res = requests.get(val, stream=True)
                     if res.ok:
                         res.raw.decode_content = True
                         with open(os.path.join(output_path, new_filename), 'wb') as outfile:
                             for chunk in res:
                                 outfile.write(chunk)
-                    if res.status_code == 404:
+                    elif res.status_code == 404:
                         raise MissingFileExecption('%s returned a 404' % val)
                     else:
                         raise UnknownErrorException('URL %s returned code %d' % (val, res.status_code))
